@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import * as Joi from 'joi';
 import { HealthController } from './core/health/health.controller';
+import { TenancyModule } from './core/tenancy/tenancy.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 
@@ -17,6 +18,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
       }),
     }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+    TenancyModule,
     CatalogModule,
     InventoryModule,
   ],

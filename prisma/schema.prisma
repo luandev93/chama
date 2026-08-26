@@ -13,6 +13,9 @@ enum StockMovementType { PURCHASE SALE ADJUSTMENT_IN ADJUSTMENT_OUT LOSS EXPIRAT
 enum AuditAction { CREATE UPDATE DELETE LOGIN LOGOUT STATUS_CHANGE PAYMENT_EVENT STOCK_MOVEMENT }
 enum PricingMode { SECTION_DEFAULT CUSTOM_MARKUP DIRECT_SALE_PRICE }
 enum ReservationStatus { ACTIVE CONFIRMED RELEASED EXPIRED CANCELLED }
+enum OrderStatus { DRAFT PENDING_PAYMENT CONFIRMED PREPARING READY OUT_FOR_DELIVERY DELIVERED CANCELLED EXPIRED }
+enum OrderOrigin { POS WHATSAPP WEB MANUAL }
+enum OrderType { PICKUP DELIVERY }
 
 model Tenant {
   id         String   @id @default(uuid()) @db.Uuid
@@ -26,6 +29,7 @@ model Tenant {
   categories ProductCategory[]
   products   Product[]
   reservations StockReservation[]
+  orders     Order[]
   auditLogs  AuditLog[]
 }
 
@@ -44,6 +48,7 @@ model Store {
   movements StockMovement[]
   reservations StockReservation[]
   pricingPolicies SectionPricingPolicy[]
+  orders Order[]
   @@unique([tenantId, slug])
   @@index([tenantId])
 }
@@ -140,6 +145,7 @@ model Product {
   movements  StockMovement[]
   balances   StockBalance[]
   reservations StockReservation[]
+  orderItems OrderItem[]
   @@index([tenantId, name])
   @@index([tenantId, gtin])
   @@index([tenantId, categoryId, sectionId])
@@ -194,6 +200,51 @@ model StockReservation {
   product    Product           @relation(fields: [productId], references: [id], onDelete: Restrict)
   @@index([tenantId, storeId, productId, status])
   @@index([expiresAt, status])
+}
+
+model Order {
+  id             String      @id @default(uuid()) @db.Uuid
+  tenantId       String      @db.Uuid
+  storeId        String      @db.Uuid
+  status         OrderStatus @default(DRAFT)
+  origin         OrderOrigin
+  type           OrderType   @default(PICKUP)
+  customerName   String?
+  customerPhone  String?
+  subtotal       Decimal     @default(0) @db.Decimal(14, 4)
+  deliveryFee    Decimal     @default(0) @db.Decimal(14, 4)
+  discountAmount Decimal     @default(0) @db.Decimal(14, 4)
+  totalAmount    Decimal     @default(0) @db.Decimal(14, 4)
+  notes          String?
+  expiresAt      DateTime?
+  confirmedAt    DateTime?
+  cancelledAt    DateTime?
+  createdBy      String?     @db.Uuid
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  store          Store       @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  items          OrderItem[]
+  @@index([tenantId, storeId, status, createdAt])
+  @@index([tenantId, customerPhone, createdAt])
+  @@index([expiresAt, status])
+}
+
+model OrderItem {
+  id            String   @id @default(uuid()) @db.Uuid
+  orderId       String   @db.Uuid
+  productId     String   @db.Uuid
+  productName   String
+  unit          String
+  quantity      Decimal  @db.Decimal(14, 3)
+  unitPrice     Decimal  @db.Decimal(14, 4)
+  lineTotal     Decimal  @db.Decimal(14, 4)
+  reservationId String?  @db.Uuid
+  createdAt     DateTime @default(now())
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  @@unique([orderId, productId])
+  @@index([productId])
 }
 
 model StockMovement {

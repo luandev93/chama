@@ -5,17 +5,31 @@ import { AccessTokenPayload } from '../../auth/auth.types';
 import { Roles } from '../../auth/roles.decorator';
 import { RolesGuard } from '../../auth/roles.guard';
 import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
+import { CreateStockReservationDto } from './dto/create-stock-reservation.dto';
 import { InventoryService } from './inventory.service';
+import { StockReservationService } from './stock-reservation.service';
 
 @Controller('inventory')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class InventoryController {
-  constructor(private readonly inventory: InventoryService) {}
+  constructor(private readonly inventory: InventoryService, private readonly reservations: StockReservationService) {}
 
   @Post('movements')
   @Roles('OWNER', 'MANAGER', 'OPERATOR')
   move(@CurrentUser() user: AccessTokenPayload, @Headers('x-store-id') storeId: string, @Body() dto: CreateStockMovementDto) {
     return this.inventory.move(user.tenantId, storeId, user.sub, dto);
+  }
+
+  @Post('reservations')
+  @Roles('OWNER', 'MANAGER', 'OPERATOR')
+  reserve(@CurrentUser() user: AccessTokenPayload, @Headers('x-store-id') storeId: string, @Body() dto: CreateStockReservationDto) {
+    return this.reservations.create(user.tenantId, storeId, user.sub, dto);
+  }
+
+  @Post('reservations/:id/release')
+  @Roles('OWNER', 'MANAGER', 'OPERATOR')
+  release(@CurrentUser() user: AccessTokenPayload, @Headers('x-store-id') storeId: string, @Param('id') id: string) {
+    return this.reservations.release(user.tenantId, storeId, user.sub, id);
   }
 
   @Get('products/:productId/balance')

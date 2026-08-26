@@ -7,6 +7,7 @@ import { PrismaModule } from './core/database/prisma.module';
 import { TenancyModule } from './core/tenancy/tenancy.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
@@ -30,6 +31,7 @@ import { AuthModule } from './auth/auth.module';
     AuthModule,
     CatalogModule,
     InventoryModule,
+    OrdersModule,
   ],
   controllers: [HealthController],
 })

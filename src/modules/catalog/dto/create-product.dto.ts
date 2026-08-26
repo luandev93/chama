@@ -1,5 +1,11 @@
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsDecimal, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsDecimal, IsEnum, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
+
+export enum ProductPricingModeDto {
+  SECTION_DEFAULT = 'SECTION_DEFAULT',
+  CUSTOM_MARKUP = 'CUSTOM_MARKUP',
+  DIRECT_SALE_PRICE = 'DIRECT_SALE_PRICE',
+}
 
 export class CreateProductDto {
   @IsString()
@@ -18,6 +24,14 @@ export class CreateProductDto {
   @MaxLength(80)
   category?: string;
 
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  sectionId?: string;
+
   @IsString()
   @MaxLength(16)
   unit!: string;
@@ -31,6 +45,15 @@ export class CreateProductDto {
   @Transform(({ value }) => String(value))
   @IsDecimal({ decimal_digits: '0,4', force_decimal: false })
   salePrice?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => String(value))
+  @IsDecimal({ decimal_digits: '0,4', force_decimal: false })
+  markupPercent?: string;
+
+  @IsOptional()
+  @IsEnum(ProductPricingModeDto)
+  pricingMode?: ProductPricingModeDto;
 
   @IsOptional()
   @Transform(({ value }) => String(value))

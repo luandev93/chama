@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { PricingMode } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
 import { PricingService } from './pricing.service';
-import { CreateProductDto, ProductPricingModeDto } from './dto/create-product.dto';
+import { CreateProductDto } from './dto/create-product.dto';
 
 @Injectable()
 export class CatalogService {
@@ -26,14 +26,7 @@ export class CatalogService {
     }
 
     const requestedMode = dto.pricingMode as PricingMode | undefined;
-    const resolvedPricing = await this.pricing.resolveForProduct(
-      storeId,
-      dto.sectionId,
-      dto.costPrice,
-      dto.salePrice,
-      requestedMode,
-      dto.markupPercent,
-    );
+    const resolvedPricing = await this.pricing.resolveForProduct(storeId, dto.sectionId, dto.costPrice, dto.salePrice, requestedMode, dto.markupPercent);
 
     return this.prisma.$transaction(async (tx) => {
       const product = await tx.product.create({

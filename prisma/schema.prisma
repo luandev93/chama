@@ -12,6 +12,7 @@ enum UserStatus { ACTIVE INVITED SUSPENDED }
 enum StockMovementType { PURCHASE SALE ADJUSTMENT_IN ADJUSTMENT_OUT LOSS EXPIRATION RETURN TRANSFER_IN TRANSFER_OUT INVENTORY_CORRECTION RESERVATION RELEASE }
 enum AuditAction { CREATE UPDATE DELETE LOGIN LOGOUT STATUS_CHANGE PAYMENT_EVENT STOCK_MOVEMENT }
 enum PricingMode { SECTION_DEFAULT CUSTOM_MARKUP DIRECT_SALE_PRICE }
+enum ReservationStatus { ACTIVE CONFIRMED RELEASED EXPIRED CANCELLED }
 
 model Tenant {
   id         String   @id @default(uuid()) @db.Uuid
@@ -24,6 +25,7 @@ model Tenant {
   users      User[]
   categories ProductCategory[]
   products   Product[]
+  reservations StockReservation[]
   auditLogs  AuditLog[]
 }
 
@@ -40,6 +42,7 @@ model Store {
   products  ProductStore[]
   balances  StockBalance[]
   movements StockMovement[]
+  reservations StockReservation[]
   pricingPolicies SectionPricingPolicy[]
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -136,6 +139,7 @@ model Product {
   stores     ProductStore[]
   movements  StockMovement[]
   balances   StockBalance[]
+  reservations StockReservation[]
   @@index([tenantId, name])
   @@index([tenantId, gtin])
   @@index([tenantId, categoryId, sectionId])
@@ -170,6 +174,26 @@ model StockBalance {
   product          Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
   @@unique([storeId, productId])
   @@index([tenantId, productId])
+}
+
+model StockReservation {
+  id         String            @id @default(uuid()) @db.Uuid
+  tenantId   String            @db.Uuid
+  storeId    String            @db.Uuid
+  productId  String            @db.Uuid
+  quantity   Decimal           @db.Decimal(14, 3)
+  status     ReservationStatus @default(ACTIVE)
+  reference  String?
+  expiresAt  DateTime?
+  createdBy  String?           @db.Uuid
+  releasedAt DateTime?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  store      Store             @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  product    Product           @relation(fields: [productId], references: [id], onDelete: Restrict)
+  @@index([tenantId, storeId, productId, status])
+  @@index([expiresAt, status])
 }
 
 model StockMovement {

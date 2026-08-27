@@ -1,0 +1,4 @@
+import { NavLink, Outlet } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+const links=[['/dashboard','Visão geral'],['/dashboard/products','Produtos'],['/dashboard/categories','Categorias'],['/dashboard/sections','Seções'],['/dashboard/brands','Marcas'],['/dashboard/stock','Estoque'],['/dashboard/promotions','Promoções'],['/dashboard/orders','Pedidos'],['/dashboard/payments','Pagamentos']];
+export default function DashboardLayout(){const {user,logout}=useAuth();return <div className="layout"><aside className="sidebar"><div className="brand">🔥 CHAMA</div><div>{user?.name}</div><nav className="nav">{links.map(([to,label])=><NavLink key={to} to={to}>{label}</NavLink>)}</nav><button className="btn secondary" onClick={logout}>Sair</button></aside><main className="main"><Outlet/></main></div>}

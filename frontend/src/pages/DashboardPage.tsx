@@ -1,0 +1,4 @@
+import DashboardLayout from '@/layouts/DashboardLayout';
+const metrics=[['Faturamento','R$ —'],['Lucro bruto','R$ —'],['Pedidos','—'],['Estoque crítico','—']];
+export default function DashboardPage(){return <DashboardLayout><div/></DashboardLayout>}
+export function DashboardContent(){return <section className="page"><header><h1>Painel do gestor</h1><p>Visão operacional e comercial da loja.</p></header><div className="grid">{metrics.map(([label,value])=><article className="metric" key={label}><small>{label}</small><h2>{value}</h2></article>)}</div><article className="card"><h2>Próxima integração</h2><p>Os indicadores serão preenchidos exclusivamente pelos endpoints oficiais de analytics quando o contrato da API estiver publicado.</p></article></section>}

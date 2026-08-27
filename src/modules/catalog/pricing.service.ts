@@ -6,6 +6,19 @@ import { PrismaService } from '../../core/database/prisma.service';
 export class PricingService {
   constructor(private readonly prisma: PrismaService) {}
 
+  psychologicalSuggestion(costInput: string, minimumMarginInput: string, ending: string) {
+    const cost = new Prisma.Decimal(costInput);
+    const minimumMargin = new Prisma.Decimal(minimumMarginInput);
+    if (!cost.isFinite() || cost.lt(0)) throw new BadRequestException('O custo deve ser válido e não negativo.');
+    if (!minimumMargin.isFinite() || minimumMargin.lt(0) || minimumMargin.gte(100)) throw new BadRequestException('A margem mínima deve ficar entre 0% e menor que 100%.');
+    const technicalPrice = minimumMargin.eq(0) ? cost : cost.div(new Prisma.Decimal(1).minus(minimumMargin.div(100)));
+    const cents = new Prisma.Decimal(ending.replace(',', '.'));
+    let candidate = technicalPrice.floor().plus(cents);
+    if (candidate.lt(technicalPrice)) candidate = candidate.plus(1);
+    const grossMarginPercent = candidate.eq(0) ? new Prisma.Decimal(0) : candidate.minus(cost).div(candidate).mul(100);
+    return { costPrice: cost.toDecimalPlaces(4).toString(), minimumMarginPercent: minimumMargin.toDecimalPlaces(4).toString(), technicalPrice: technicalPrice.toDecimalPlaces(4).toString(), suggestedPrice: candidate.toDecimalPlaces(2).toString(), grossMarginPercent: grossMarginPercent.toDecimalPlaces(4).toString(), requiresApproval: grossMarginPercent.lt(minimumMargin) };
+  }
+
   calculate(costInput: string, markupInput: string) {
     const cost = new Prisma.Decimal(costInput);
     const markupPercent = new Prisma.Decimal(markupInput);

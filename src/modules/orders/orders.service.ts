@@ -62,9 +62,29 @@ export class OrdersService {
         if (!balance || balance.reservedQuantity.lt(item.quantity) || balance.physicalQuantity.lt(item.quantity)) throw new BadRequestException('Inconsistência de estoque detectada durante a confirmação.');
         const before = balance.physicalQuantity;
         const after = before.minus(item.quantity);
+        let remaining = item.quantity;
+        const lots = await tx.productLot.findMany({
+          where: { tenantId, storeId, productId: item.productId, status: 'ACTIVE', quantity: { gt: 0 }, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+          orderBy: [{ expiresAt: 'asc' }, { receivedAt: 'asc' }],
+        });
+        for (const lot of lots) {
+          if (remaining.lte(0)) break;
+          await tx.$queryRaw`SELECT "id" FROM "ProductLot" WHERE "id" = ${lot.id}::uuid FOR UPDATE`;
+          const lockedLot = await tx.productLot.findUnique({ where: { id: lot.id } });
+          if (!lockedLot || lockedLot.status !== 'ACTIVE' || (lockedLot.expiresAt && lockedLot.expiresAt <= new Date())) continue;
+          const lotAvailable = lockedLot.quantity.minus(lockedLot.reservedQuantity);
+          if (lotAvailable.lte(0)) continue;
+          const allocated = Prisma.Decimal.min(lotAvailable, remaining);
+          await tx.productLot.update({ where: { id: lockedLot.id }, data: { quantity: lockedLot.quantity.minus(allocated), status: lockedLot.quantity.minus(allocated).eq(0) ? 'EXHAUSTED' : lockedLot.status } });
+          await tx.orderItemLot.create({ data: { orderItemId: item.id, lotId: lockedLot.id, quantity: allocated } });
+          await tx.stockMovement.create({ data: { tenantId, storeId, productId: item.productId, lotId: lockedLot.id, type: StockMovementType.SALE, quantity: allocated.negated(), quantityBefore: before, quantityAfter: after, reason: 'Pedido confirmado por FEFO', reference: order.id, actorUserId: actorId } });
+          remaining = remaining.minus(allocated);
+        }
+        const hasLots = lots.length > 0;
+        if (hasLots && remaining.gt(0)) throw new BadRequestException('Não há lote FEFO válido suficiente; lotes vencidos não podem ser vendidos.');
         await tx.stockBalance.update({ where: { id: balance.id }, data: { physicalQuantity: after, reservedQuantity: balance.reservedQuantity.minus(item.quantity) } });
         await tx.stockReservation.update({ where: { id: reservation.id }, data: { status: ReservationStatus.CONFIRMED } });
-        await tx.stockMovement.create({ data: { tenantId, storeId, productId: item.productId, type: StockMovementType.SALE, quantity: item.quantity.negated(), quantityBefore: before, quantityAfter: after, reason: 'Pedido confirmado', reference: order.id, actorUserId: actorId } });
+        if (!hasLots) await tx.stockMovement.create({ data: { tenantId, storeId, productId: item.productId, type: StockMovementType.SALE, quantity: item.quantity.negated(), quantityBefore: before, quantityAfter: after, reason: 'Pedido confirmado', reference: order.id, actorUserId: actorId } });
       }
 
       const confirmed = await tx.order.update({ where: { id: order.id }, data: { status: OrderStatus.CONFIRMED, confirmedAt: new Date(), expiresAt: null } });

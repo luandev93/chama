@@ -31,7 +31,7 @@ export class StockReservationService {
   }
 
   async release(tenantId: string, storeId: string, actorId: string, reservationId: string, status: ReservationStatus = ReservationStatus.RELEASED) {
-    if (![ReservationStatus.RELEASED, ReservationStatus.CANCELLED, ReservationStatus.EXPIRED].includes(status)) throw new BadRequestException('Status de liberação inválido.');
+    if (!['RELEASED', 'CANCELLED', 'EXPIRED'].includes(status)) throw new BadRequestException('Status de liberação inválido.');
     return this.prisma.$transaction(async (tx) => {
       const reservation = await tx.stockReservation.findFirst({ where: { id: reservationId, tenantId, storeId, status: ReservationStatus.ACTIVE } });
       if (!reservation) throw new NotFoundException('Reserva ativa não encontrada.');

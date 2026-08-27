@@ -1,0 +1,1 @@
+import CrudPage from './CrudPage';export default function OrdersPage(){return <CrudPage title="Pedidos" description="Acompanhe pedidos e seus estados oficiais." endpoint="/orders" columns={['number','status','total','paymentStatus','origin']}/>}

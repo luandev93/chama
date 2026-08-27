@@ -1,0 +1,1 @@
+import CrudPage from './CrudPage';export default function PromotionsPage(){return <CrudPage title="Promoções" description="Preço efetivo e status promocional são calculados pelo domínio comercial." endpoint="/promotions" columns={['productName','basePrice','promotionPrice','status','startsAt','endsAt']}/>}

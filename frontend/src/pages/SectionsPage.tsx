@@ -1,0 +1,1 @@
+import CrudPage from './CrudPage';export default function SectionsPage(){return <CrudPage title="Seções" description="Configure agrupamentos e regras comerciais específicas." endpoint="/sections" columns={['name','categoryName','defaultMargin']}/>}

@@ -1,0 +1,1 @@
+import CrudPage from './CrudPage';export default function CategoriesPage(){return <CrudPage title="Categorias" description="Organize os produtos por grupos comerciais." endpoint="/categories" columns={['name','description','defaultMargin']}/>}

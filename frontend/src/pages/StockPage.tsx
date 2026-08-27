@@ -1,0 +1,1 @@
+import CrudPage from './CrudPage';export default function StockPage(){return <CrudPage title="Estoque" description="Saldo físico, reservado e disponível são definidos pelo backend." endpoint="/stock" columns={['productName','physicalQuantity','reservedQuantity','availableQuantity','status']}/>}

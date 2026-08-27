@@ -23,12 +23,6 @@ export class OrdersController {
     return this.orders.get(user.tenantId, storeId, id);
   }
 
-  @Post(':id/confirm')
-  @Roles('OWNER', 'MANAGER', 'OPERATOR')
-  confirm(@CurrentUser() user: AccessTokenPayload, @Headers('x-store-id') storeId: string, @Param('id') id: string) {
-    return this.orders.confirm(user.tenantId, storeId, user.sub, id);
-  }
-
   @Post(':id/cancel')
   @Roles('OWNER', 'MANAGER', 'OPERATOR')
   cancel(@CurrentUser() user: AccessTokenPayload, @Headers('x-store-id') storeId: string, @Param('id') id: string) {

@@ -90,18 +90,26 @@ export class CatalogService {
       include: {
         categoryRef: { select: { id: true, name: true } },
         section: { select: { id: true, name: true } },
-        stores: { where: { storeId }, select: { salePrice: true, costPrice: true, pricingMode: true, markupPercent: true, grossMarginPercent: true, minimumQty: true, reorderPoint: true } },
+        stores: { where: { storeId }, select: { salePrice: true, costPrice: true, pricingMode: true, markupPercent: true, grossMarginPercent: true, minimumQty: true, maximumQty: true, reorderPoint: true } },
+        promotions: { where: { storeId, status: 'ACTIVE', startsAt: { lte: new Date() }, OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] }, orderBy: { startsAt: 'desc' }, take: 1 },
         balances: { where: { storeId }, select: { physicalQuantity: true, reservedQuantity: true } },
       },
       orderBy: { name: 'asc' },
       take: 100,
-    });
+    }).then((products) => products.map((product) => {
+      const basePrice = product.stores[0]?.salePrice ?? null;
+      const promotion = product.promotions[0];
+      const effectivePrice = basePrice && promotion
+        ? promotion.promotionalPrice ?? basePrice.minus(basePrice.mul(promotion.percentOff ?? 0).div(100))
+        : basePrice;
+      return { ...product, pricing: { basePrice, effectivePrice, promotion, isOffer: Boolean(promotion) } };
+    }));
   }
 
   async get(tenantId: string, storeId: string, productId: string) {
     const product = await this.prisma.product.findFirst({
       where: { id: productId, tenantId, stores: { some: { storeId } } },
-      include: { categoryRef: true, section: true, stores: { where: { storeId } }, balances: { where: { storeId } } },
+      include: { categoryRef: true, section: true, stores: { where: { storeId } }, promotions: { where: { storeId, status: 'ACTIVE', startsAt: { lte: new Date() }, OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] }, orderBy: { startsAt: 'desc' }, take: 1 }, balances: { where: { storeId } } },
     });
     if (!product) throw new NotFoundException('Produto não encontrado.');
     return product;

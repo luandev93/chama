@@ -6,6 +6,7 @@ import { Roles } from '../../auth/roles.decorator';
 import { RolesGuard } from '../../auth/roles.guard';
 import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
 import { CreateStockReservationDto } from './dto/create-stock-reservation.dto';
+import { CreateProductLotDto } from './dto/create-product-lot.dto';
 import { InventoryService } from './inventory.service';
 import { StockReservationService } from './stock-reservation.service';
 
@@ -18,6 +19,22 @@ export class InventoryController {
   @Roles('OWNER', 'MANAGER', 'OPERATOR')
   move(@CurrentUser() user: AccessTokenPayload, @Headers('x-store-id') storeId: string, @Body() dto: CreateStockMovementDto) {
     return this.inventory.move(user.tenantId, storeId, user.sub, dto);
+  }
+
+  @Post('lots')
+  @Roles('OWNER', 'MANAGER', 'OPERATOR')
+  createLot(@CurrentUser() user: AccessTokenPayload, @Headers('x-store-id') storeId: string, @Body() dto: CreateProductLotDto) {
+    return this.inventory.createLot(user.tenantId, storeId, user.sub, dto);
+  }
+
+  @Get('products/:productId/lots')
+  listLots(@CurrentUser() user: AccessTokenPayload, @Headers('x-store-id') storeId: string, @Param('productId') productId: string) {
+    return this.inventory.listLots(user.tenantId, storeId, productId);
+  }
+
+  @Get('alerts')
+  alerts(@CurrentUser() user: AccessTokenPayload, @Headers('x-store-id') storeId: string) {
+    return this.inventory.alerts(user.tenantId, storeId);
   }
 
   @Post('reservations')

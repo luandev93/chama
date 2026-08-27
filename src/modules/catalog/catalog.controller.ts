@@ -8,6 +8,7 @@ import { CatalogService } from './catalog.service';
 import { PricingService } from './pricing.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { MarginFromPriceDto, PriceFromMarkupDto } from './dto/pricing-preview.dto';
+import { PsychologicalPriceDto } from './dto/psychological-price.dto';
 
 @Controller('catalog/products')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -24,6 +25,11 @@ export class CatalogController {
   @Roles('OWNER', 'MANAGER', 'OPERATOR')
   priceFromMarkup(@Body() dto: PriceFromMarkupDto) {
     return this.pricing.calculate(dto.costPrice, dto.markupPercent);
+  }
+
+  @Post('pricing/psychological-suggestion')
+  psychologicalSuggestion(@Body() dto: PsychologicalPriceDto) {
+    return this.pricing.psychologicalSuggestion(dto.costPrice, dto.minimumMarginPercent, dto.ending);
   }
 
   @Post('pricing/from-sale-price')

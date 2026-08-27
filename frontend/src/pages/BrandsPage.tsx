@@ -1,0 +1,1 @@
+import CrudPage from './CrudPage';export default function BrandsPage(){return <CrudPage title="Marcas" description="Acompanhe o desempenho comercial por marca." endpoint="/brands" columns={['name','productsCount','salesVolume','revenue']}/>}

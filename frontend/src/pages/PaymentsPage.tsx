@@ -1,0 +1,1 @@
+import CrudPage from './CrudPage';export default function PaymentsPage(){return <CrudPage title="Pagamentos" description="O frontend exibe apenas estados confirmados pelo backend e pelo provedor." endpoint="/payments" columns={['orderNumber','method','amount','status','createdAt']}/>}

@@ -1,1 +1,323 @@
-import { useEffect,useState } from 'react';import { api,ApiError } from '@/lib/api';type Rank={name:string;qty:number;revenue:number;profit:number;margin:number};type ProductRank=Rank&{productId:string};type Replenishment={productId:string;name:string;availableQuantity:number;minimumQuantity:number;reorderPoint:number;salesLast30Days:number;recommendedQuantity:number;reason:string};type Recommendation={type:string;priority:string;title:string;description:string;productId:string;action:string};type Overview={cards:{revenue:number;orders:number;ordersToday:number;averageTicket:number;estimatedProfit:number;estimatedMargin:number;expiringLots:number;stockouts:number;lowStock:number;inventoryValue:number;activePromotions:number};topProducts:ProductRank[];topBrands:Rank[];topCategories:Rank[];dailySales:{date:string;revenue:number;orders:number;profit:number}[];lowMarginProducts:ProductRank[];strategicProducts:ProductRank[];replenishment:Replenishment[];recommendations:Recommendation[]};const money=(v:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));export default function DashboardPage(){const [data,setData]=useState<Overview|null>(null);const [error,setError]=useState('');useEffect(()=>{api<Overview>('/dashboard/overview').then(setData).catch(e=>setError(e instanceof ApiError?e.message:'Não foi possível carregar o painel'))},[]);if(error)return <section className="page"><h1>Painel do gestor</h1><div className="card" role="alert">{error}</div></section>;if(!data)return <section className="page"><h1>Painel do gestor</h1><p>Carregando indicadores...</p></section>;const c=data.cards,rank=(title:string,rows:Rank[])=> <article className="card"><h2>{title}</h2>{rows.length===0?<p>Sem dados suficientes.</p>:<table className="table"><thead><tr><th>Nome</th><th>Qtd.</th><th>Faturamento</th><th>Lucro</th><th>Margem</th></tr></thead><tbody>{rows.map(r=><tr key={r.name}><td><strong>{r.name}</strong></td><td>{r.qty}</td><td>{money(r.revenue)}</td><td>{money(r.profit)}</td><td>{r.margin.toFixed(1)}%</td></tr>)}</tbody></table>}</article>;const go=(action:string,productId?:string)=>{const query=productId?`?productId=${encodeURIComponent(productId)}`:'';if(action==='REVIEW_PRICE')location.hash=`#/products${query}`;else if(action==='REVIEW_STOCK'||action==='WATCH_REPLENISH')location.hash=`#/stock${query}`;else if(action==='CREATE_PROMOTION')location.hash=`#/promotions${query}`};const metrics=[['Faturamento',money(c.revenue)],['Lucro bruto estimado',money(c.estimatedProfit)],['Margem bruta',`${c.estimatedMargin.toFixed(1)}%`],['Pedidos',String(c.orders)],['Ticket médio',money(c.averageTicket)],['Pedidos hoje',String(c.ordersToday)],['Estoque crítico',String(c.lowStock)],['Rupturas',String(c.stockouts)],['Lotes a vencer',String(c.expiringLots)],['Promoções ativas',String(c.activePromotions)]];return <section className="page"><header><h1>Painel do gestor</h1><p>Visão operacional, financeira e comercial da loja nos últimos 30 dias.</p></header><div className="grid">{metrics.map(([label,value])=><article className="metric" key={label}><small>{label}</small><h2>{value}</h2></article>)}</div>{data.recommendations.length>0&&<article className="card"><h2>⚡ Recomendações do CHAMA</h2>{data.recommendations.map(r=><div className="card" key={`${r.type}-${r.productId}`}><small>{r.priority==='HIGH'?'PRIORIDADE ALTA':r.priority==='MEDIUM'?'ATENÇÃO':'OPORTUNIDADE'}</small><h3>{r.title}</h3><p>{r.description}</p><button className="btn secondary" onClick={()=>go(r.action,r.productId)}>{r.action==='REVIEW_STOCK'?'Abrir estoque':r.action==='REVIEW_PRICE'?'Revisar preço':'Acompanhar produto'}</button></div>)}</article>}<section className="grid"><article className="card"><h2>Capital em estoque</h2><p><strong>{money(c.inventoryValue)}</strong></p><small>Valor de venda estimado do saldo disponível.</small></article><article className="card"><h2>Alertas prioritários</h2><p><strong>{c.lowStock}</strong> itens em nível crítico</p><p><strong>{c.expiringLots}</strong> lotes próximos do vencimento</p><p><strong>{c.stockouts}</strong> produtos sem saldo</p><button className="btn secondary" onClick={()=>location.hash='#/promotions'}>Ver oportunidades de promoção</button></article></section>{data.replenishment.length>0&&<article className="card"><h2>Reposição sugerida</h2><table className="table"><thead><tr><th>Produto</th><th>Disponível</th><th>Vendas 30d</th><th>Sugestão</th><th>Motivo</th><th></th></tr></thead><tbody>{data.replenishment.slice(0,10).map(r=><tr key={r.productId}><td><strong>{r.name}</strong></td><td>{r.availableQuantity}</td><td>{r.salesLast30Days}</td><td>{r.recommendedQuantity} un.</td><td>{r.reason}</td><td><button className="btn secondary" onClick={()=>go('REVIEW_STOCK',r.productId)}>Estoque</button></td></tr>)}</tbody></table></article>}{rank('Marcas que mais faturam',data.topBrands)}{rank('Categorias com maior resultado',data.topCategories)}{rank('Produtos estratégicos',data.strategicProducts)}{rank('Produtos com margem para revisão',data.lowMarginProducts)}<article className="card"><h2>Produtos que mais vendem</h2>{data.topProducts.length===0?<p>Ainda não há vendas suficientes para montar o ranking.</p>:<table className="table"><thead><tr><th>Produto</th><th>Qtd.</th><th>Faturamento</th><th>Lucro bruto</th><th>Margem</th></tr></thead><tbody>{data.topProducts.map(p=><tr key={p.productId}><td><strong>{p.name}</strong></td><td>{p.qty}</td><td>{money(p.revenue)}</td><td>{money(p.profit)}</td><td>{p.margin.toFixed(1)}%</td></tr>)}</tbody></table>}</article><article className="card"><h2>Vendas por dia</h2>{data.dailySales.length===0?<p>Sem movimentação no período.</p>:<table className="table"><thead><tr><th>Data</th><th>Pedidos</th><th>Faturamento</th><th>Lucro bruto</th></tr></thead><tbody>{data.dailySales.map(d=><tr key={d.date}><td>{new Date(`${d.date}T12:00:00`).toLocaleDateString('pt-BR')}</td><td>{d.orders}</td><td>{money(d.revenue)}</td><td>{money(d.profit)}</td></tr>)}</tbody></table>}</article></section>}
+import { useEffect, useState } from 'react';
+import { Boxes, DollarSign, Tag } from 'lucide-react';
+import { api, ApiError } from '@/lib/api';
+import { Button } from '@/components/Button';
+
+type Rank = { name: string; qty: number; revenue: number; profit: number; margin: number };
+type ProductRank = Rank & { productId: string };
+type Replenishment = {
+  productId: string;
+  name: string;
+  availableQuantity: number;
+  minimumQuantity: number;
+  reorderPoint: number;
+  salesLast30Days: number;
+  recommendedQuantity: number;
+  reason: string;
+};
+type Recommendation = {
+  type: string;
+  priority: string;
+  title: string;
+  description: string;
+  productId: string;
+  action: string;
+};
+type Overview = {
+  cards: {
+    revenue: number;
+    orders: number;
+    ordersToday: number;
+    averageTicket: number;
+    estimatedProfit: number;
+    estimatedMargin: number;
+    expiringLots: number;
+    stockouts: number;
+    lowStock: number;
+    inventoryValue: number;
+    activePromotions: number;
+  };
+  topProducts: ProductRank[];
+  topBrands: Rank[];
+  topCategories: Rank[];
+  dailySales: { date: string; revenue: number; orders: number; profit: number }[];
+  lowMarginProducts: ProductRank[];
+  strategicProducts: ProductRank[];
+  replenishment: Replenishment[];
+  recommendations: Recommendation[];
+};
+
+const money = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v || 0));
+
+// Every recommendation action gets a fixed icon + label + tooltip, so the same
+// action always looks and reads the same wherever it shows up on the dashboard.
+const ACTION_PRESENTATION: Record<string, { icon: typeof Boxes; label: string; description: string }> = {
+  REVIEW_STOCK: { icon: Boxes, label: 'Abrir estoque', description: 'Ver e ajustar o saldo deste produto no estoque' },
+  REVIEW_PRICE: { icon: DollarSign, label: 'Revisar preço', description: 'Abrir o produto para revisar preço e margem' },
+  WATCH_REPLENISH: { icon: Boxes, label: 'Acompanhar produto', description: 'Ver o histórico de estoque deste produto' },
+  CREATE_PROMOTION: { icon: Tag, label: 'Acompanhar produto', description: 'Ver o produto para avaliar uma promoção' },
+};
+
+export default function DashboardPage() {
+  const [data, setData] = useState<Overview | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api<Overview>('/dashboard/overview')
+      .then(setData)
+      .catch((e) => setError(e instanceof ApiError ? e.message : 'Não foi possível carregar o painel'));
+  }, []);
+
+  if (error) {
+    return (
+      <section className="page">
+        <h1>Painel do gestor</h1>
+        <div className="card" role="alert">
+          {error}
+        </div>
+      </section>
+    );
+  }
+  if (!data) {
+    return (
+      <section className="page">
+        <h1>Painel do gestor</h1>
+        <p>Carregando indicadores...</p>
+      </section>
+    );
+  }
+
+  const c = data.cards;
+
+  const rank = (title: string, rows: Rank[]) => (
+    <article className="card">
+      <h2>{title}</h2>
+      {rows.length === 0 ? (
+        <p>Sem dados suficientes.</p>
+      ) : (
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Qtd.</th>
+              <th>Faturamento</th>
+              <th>Lucro</th>
+              <th>Margem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.name}>
+                <td>
+                  <strong>{r.name}</strong>
+                </td>
+                <td>{r.qty}</td>
+                <td>{money(r.revenue)}</td>
+                <td>{money(r.profit)}</td>
+                <td>{r.margin.toFixed(1)}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </article>
+  );
+
+  const go = (action: string, productId?: string) => {
+    const query = productId ? `?productId=${encodeURIComponent(productId)}` : '';
+    if (action === 'REVIEW_PRICE') location.hash = `#/products${query}`;
+    else if (action === 'REVIEW_STOCK' || action === 'WATCH_REPLENISH') location.hash = `#/stock${query}`;
+    else if (action === 'CREATE_PROMOTION') location.hash = `#/promotions${query}`;
+  };
+
+  const metrics: Array<[string, string]> = [
+    ['Faturamento', money(c.revenue)],
+    ['Lucro bruto estimado', money(c.estimatedProfit)],
+    ['Margem bruta', `${c.estimatedMargin.toFixed(1)}%`],
+    ['Pedidos', String(c.orders)],
+    ['Ticket médio', money(c.averageTicket)],
+    ['Pedidos hoje', String(c.ordersToday)],
+    ['Estoque crítico', String(c.lowStock)],
+    ['Rupturas', String(c.stockouts)],
+    ['Lotes a vencer', String(c.expiringLots)],
+    ['Promoções ativas', String(c.activePromotions)],
+  ];
+
+  return (
+    <section className="page">
+      <header>
+        <h1>Painel do gestor</h1>
+        <p>Visão operacional, financeira e comercial da loja nos últimos 30 dias.</p>
+      </header>
+
+      <div className="grid">
+        {metrics.map(([label, value]) => (
+          <article className="metric" key={label}>
+            <small>{label}</small>
+            <h2>{value}</h2>
+          </article>
+        ))}
+      </div>
+
+      {data.recommendations.length > 0 && (
+        <article className="card">
+          <h2>⚡ Recomendações do CHAMA</h2>
+          {data.recommendations.map((r) => {
+            const presentation = ACTION_PRESENTATION[r.action] ?? ACTION_PRESENTATION.WATCH_REPLENISH;
+            return (
+              <div className="card" key={`${r.type}-${r.productId}`}>
+                <small>{r.priority === 'HIGH' ? 'PRIORIDADE ALTA' : r.priority === 'MEDIUM' ? 'ATENÇÃO' : 'OPORTUNIDADE'}</small>
+                <h3>{r.title}</h3>
+                <p>{r.description}</p>
+                <Button
+                  icon={presentation.icon}
+                  variant="secondary"
+                  description={presentation.description}
+                  onClick={() => go(r.action, r.productId)}
+                >
+                  {presentation.label}
+                </Button>
+              </div>
+            );
+          })}
+        </article>
+      )}
+
+      <section className="grid">
+        <article className="card">
+          <h2>Capital em estoque</h2>
+          <p>
+            <strong>{money(c.inventoryValue)}</strong>
+          </p>
+          <small>Valor de venda estimado do saldo disponível.</small>
+        </article>
+        <article className="card">
+          <h2>Alertas prioritários</h2>
+          <p>
+            <strong>{c.lowStock}</strong> itens em nível crítico
+          </p>
+          <p>
+            <strong>{c.expiringLots}</strong> lotes próximos do vencimento
+          </p>
+          <p>
+            <strong>{c.stockouts}</strong> produtos sem saldo
+          </p>
+          <Button
+            icon={Tag}
+            variant="secondary"
+            description="Ver produtos elegíveis para promoção por estoque ou vencimento"
+            onClick={() => (location.hash = '#/promotions')}
+          >
+            Ver oportunidades de promoção
+          </Button>
+        </article>
+      </section>
+
+      {data.replenishment.length > 0 && (
+        <article className="card">
+          <h2>Reposição sugerida</h2>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Disponível</th>
+                <th>Vendas 30d</th>
+                <th>Sugestão</th>
+                <th>Motivo</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.replenishment.slice(0, 10).map((r) => (
+                <tr key={r.productId}>
+                  <td>
+                    <strong>{r.name}</strong>
+                  </td>
+                  <td>{r.availableQuantity}</td>
+                  <td>{r.salesLast30Days}</td>
+                  <td>{r.recommendedQuantity} un.</td>
+                  <td>{r.reason}</td>
+                  <td>
+                    <Button
+                      icon={Boxes}
+                      variant="secondary"
+                      description="Abrir o estoque deste produto para repor"
+                      onClick={() => go('REVIEW_STOCK', r.productId)}
+                    >
+                      Estoque
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </article>
+      )}
+
+      {rank('Marcas que mais faturam', data.topBrands)}
+      {rank('Categorias com maior resultado', data.topCategories)}
+      {rank('Produtos estratégicos', data.strategicProducts)}
+      {rank('Produtos com margem para revisão', data.lowMarginProducts)}
+
+      <article className="card">
+        <h2>Produtos que mais vendem</h2>
+        {data.topProducts.length === 0 ? (
+          <p>Ainda não há vendas suficientes para montar o ranking.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Qtd.</th>
+                <th>Faturamento</th>
+                <th>Lucro bruto</th>
+                <th>Margem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.topProducts.map((p) => (
+                <tr key={p.productId}>
+                  <td>
+                    <strong>{p.name}</strong>
+                  </td>
+                  <td>{p.qty}</td>
+                  <td>{money(p.revenue)}</td>
+                  <td>{money(p.profit)}</td>
+                  <td>{p.margin.toFixed(1)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </article>
+
+      <article className="card">
+        <h2>Vendas por dia</h2>
+        {data.dailySales.length === 0 ? (
+          <p>Sem movimentação no período.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Pedidos</th>
+                <th>Faturamento</th>
+                <th>Lucro bruto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.dailySales.map((d) => (
+                <tr key={d.date}>
+                  <td>{new Date(`${d.date}T12:00:00`).toLocaleDateString('pt-BR')}</td>
+                  <td>{d.orders}</td>
+                  <td>{money(d.revenue)}</td>
+                  <td>{money(d.profit)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </article>
+    </section>
+  );
+}

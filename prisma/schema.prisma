@@ -113,6 +113,7 @@ model Tenant {
   stores       Store[]
   users        User[]
   categories   ProductCategory[]
+  brands       Brand[]
   products     Product[]
   reservations StockReservation[]
   lots         ProductLot[]
@@ -235,6 +236,21 @@ model SectionPricingPolicy {
   @@index([storeId, active])
 }
 
+model Brand {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @db.Uuid
+  name      String
+  slug      String
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  products  Product[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, active, name])
+}
+
 model Product {
   id                String             @id @default(uuid()) @db.Uuid
   tenantId          String             @db.Uuid
@@ -243,6 +259,7 @@ model Product {
   category          String?
   categoryId        String?            @db.Uuid
   sectionId         String?            @db.Uuid
+  brandId           String?            @db.Uuid
   unit              String
   active            Boolean            @default(true)
   lotTrackingPolicy LotTrackingPolicy?
@@ -254,6 +271,7 @@ model Product {
   tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   categoryRef       ProductCategory?   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   section           ProductSection?    @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  brand             Brand?             @relation(fields: [brandId], references: [id], onDelete: Restrict)
   stores            ProductStore[]
   movements         StockMovement[]
   balances          StockBalance[]
@@ -265,6 +283,7 @@ model Product {
   @@index([tenantId, name])
   @@index([tenantId, gtin])
   @@index([tenantId, categoryId, sectionId])
+  @@index([tenantId, brandId])
 }
 
 model ProductStore {

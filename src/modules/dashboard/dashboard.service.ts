@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { OrderStatus } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
-
-const ACTIVE_STATUSES: OrderStatus[] = ['CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED'];
+import { ACTIVE_ORDER_STATUSES } from '../../core/reporting/active-order-statuses';
 
 // The dashboard aggregates 30 days of orders/items/stock in memory on every call. On the free
 // tier that DB doesn't need to answer the same query every time someone opens the screen, so a
@@ -36,7 +34,7 @@ export class DashboardService {
     const start30 = new Date(now.getTime() - 30 * 86400000);
 
     const orders = await this.prisma.order.findMany({
-      where: { tenantId, storeId, createdAt: { gte: start30 }, status: { in: ACTIVE_STATUSES } },
+      where: { tenantId, storeId, createdAt: { gte: start30 }, status: { in: ACTIVE_ORDER_STATUSES } },
       include: {
         items: {
           include: {
@@ -45,6 +43,7 @@ export class DashboardService {
                 stores: { where: { storeId }, select: { costPrice: true, salePrice: true } },
                 section: { include: { category: true } },
                 categoryRef: true,
+                brand: { select: { name: true } },
               },
             },
           },
@@ -84,8 +83,7 @@ export class DashboardService {
         current.cost += itemCost;
         products.set(i.productId, current);
 
-        // TODO: no brand entity exists yet on Product — every item lands in "Sem marca" until one is modeled.
-        const brand = 'Sem marca';
+        const brand = i.product.brand?.name ?? 'Sem marca';
         const b = brands.get(brand) ?? { qty: 0, revenue: 0, profit: 0 };
         b.qty += q;
         b.revenue += line;

@@ -32,6 +32,10 @@ export class CreateProductDto {
   @IsUUID()
   sectionId?: string;
 
+  @IsOptional()
+  @IsUUID()
+  brandId?: string;
+
   @IsString()
   @MaxLength(16)
   unit!: string;

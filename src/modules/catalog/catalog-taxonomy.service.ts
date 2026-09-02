@@ -1,10 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
 import { CreateCategoryDto, CreateSectionDto, UpsertSectionPricingPolicyDto } from './dto/catalog-taxonomy.dto';
-
-const slugify = (value: string) => value
-  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-  .trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+import { slugify } from './slugify';
 
 @Injectable()
 export class CatalogTaxonomyService {

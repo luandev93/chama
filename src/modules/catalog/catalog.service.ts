@@ -24,6 +24,10 @@ export class CatalogService {
       const category = await this.prisma.productCategory.findFirst({ where: { id: dto.categoryId, tenantId, active: true }, select: { id: true } });
       if (!category) throw new BadRequestException('Categoria inválida para este tenant.');
     }
+    if (dto.brandId) {
+      const brand = await this.prisma.brand.findFirst({ where: { id: dto.brandId, tenantId, active: true }, select: { id: true } });
+      if (!brand) throw new BadRequestException('Marca inválida para este tenant.');
+    }
 
     const requestedMode = dto.pricingMode as PricingMode | undefined;
     const resolvedPricing = await this.pricing.resolveForProduct(storeId, dto.sectionId, dto.costPrice, dto.salePrice, requestedMode, dto.markupPercent);
@@ -37,6 +41,7 @@ export class CatalogService {
           category: dto.category?.trim(),
           categoryId: dto.categoryId,
           sectionId: dto.sectionId,
+          brandId: dto.brandId,
           unit: dto.unit.trim().toUpperCase(),
           active: dto.active ?? true,
         },
@@ -90,6 +95,7 @@ export class CatalogService {
       include: {
         categoryRef: { select: { id: true, name: true } },
         section: { select: { id: true, name: true } },
+        brand: { select: { id: true, name: true } },
         stores: { where: { storeId }, select: { salePrice: true, costPrice: true, pricingMode: true, markupPercent: true, grossMarginPercent: true, minimumQty: true, maximumQty: true, reorderPoint: true } },
         promotions: { where: { storeId, status: 'ACTIVE', startsAt: { lte: new Date() }, OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] }, orderBy: { startsAt: 'desc' }, take: 1 },
         balances: { where: { storeId }, select: { physicalQuantity: true, reservedQuantity: true } },
@@ -109,7 +115,7 @@ export class CatalogService {
   async get(tenantId: string, storeId: string, productId: string) {
     const product = await this.prisma.product.findFirst({
       where: { id: productId, tenantId, stores: { some: { storeId } } },
-      include: { categoryRef: true, section: true, stores: { where: { storeId } }, promotions: { where: { storeId, status: 'ACTIVE', startsAt: { lte: new Date() }, OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] }, orderBy: { startsAt: 'desc' }, take: 1 }, balances: { where: { storeId } } },
+      include: { categoryRef: true, section: true, brand: true, stores: { where: { storeId } }, promotions: { where: { storeId, status: 'ACTIVE', startsAt: { lte: new Date() }, OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] }, orderBy: { startsAt: 'desc' }, take: 1 }, balances: { where: { storeId } } },
     });
     if (!product) throw new NotFoundException('Produto não encontrado.');
     return product;

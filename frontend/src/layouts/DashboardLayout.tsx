@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/Button';
+import { Logo } from '@/components/Logo';
 
 const links: Array<[string, string]> = [
   ['/dashboard', 'Visão geral'],
@@ -21,7 +22,9 @@ export default function DashboardLayout() {
   return (
     <div className="layout">
       <aside className="sidebar">
-        <div className="brand">🔥 CHAMA</div>
+        <div className="brand">
+          <Logo /> CHAMA
+        </div>
         <div>{user?.displayName}</div>
         <nav className="nav">
           {links.map(([to, label]) => (

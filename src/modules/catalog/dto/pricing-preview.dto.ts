@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsDecimal, IsString } from 'class-validator';
+import { IsDecimal } from 'class-validator';
 
 export class PriceFromMarkupDto {
   @Transform(({ value }) => String(value))

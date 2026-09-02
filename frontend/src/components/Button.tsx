@@ -37,8 +37,11 @@ export function Button(props: ButtonProps) {
     );
   }
 
+  // No default `type`: inside a <form> the native default is "submit" (matching a plain
+  // <button>), and outside a form it has no effect either way. Pass type="button" explicitly
+  // for an action button that lives inside a form but must not submit it.
   return (
-    <button className={classes} type="button" title={description} {...(rest as ButtonHTMLAttributes<HTMLButtonElement>)}>
+    <button className={classes} title={description} {...(rest as ButtonHTMLAttributes<HTMLButtonElement>)}>
       {content}
     </button>
   );

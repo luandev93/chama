@@ -1,7 +1,9 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Logo } from '@/components/Logo';
+import { Button } from '@/components/Button';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -43,9 +45,9 @@ export default function LoginPage() {
           <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </label>
         {error && <div role="alert">{error}</div>}
-        <button className="btn" disabled={busy}>
+        <Button icon={LogIn} type="submit" description="Entrar com o e-mail e senha informados" disabled={busy}>
           {busy ? 'Entrando...' : 'Entrar'}
-        </button>
+        </Button>
       </form>
     </div>
   );
